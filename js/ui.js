@@ -10,6 +10,18 @@ export class UI {
         this.codeEditors = new Map(); // Map of bot ID -> CodeMirror editor
         this.isPaused = false;
         
+        // New: Control state for manual turning
+        this.controlState = {
+            turnRate: 0,          // Current turn rate in degrees/sec (-1.0 to 1.0)
+            maxTurnRate: 180,     // Maximum turn rate in degrees/sec
+            turnAcceleration: 720, // How quickly turn rate changes (degrees/sec²)
+            lastUpdateTime: 0,    // For frame-rate independent turning
+            keys: {
+                w: false, a: false, s: false, d: false,
+                q: false, e: false, space: false, shift: false
+            }
+        };
+        
         // Bot templates will be loaded from files
         this.botTemplates = {
             human: '',
@@ -390,16 +402,7 @@ export class UI {
     
     setupKeyboardControls() {
         // Track pressed keys
-        const keys = {
-            w: false,
-            a: false,
-            s: false,
-            d: false,
-            q: false,
-            e: false,
-            space: false,
-            shift: false
-        };
+        const keys = this.controlState.keys;
         
         // Key down event
         window.addEventListener('keydown', (e) => {
@@ -415,8 +418,6 @@ export class UI {
                 case ' ': keys.space = true; break;
                 case 'shift': keys.shift = true; break;
             }
-            
-            this.processKeyboardControls(keys);
         });
         
         // Key up event
@@ -433,12 +434,40 @@ export class UI {
                 case ' ': keys.space = false; break;
                 case 'shift': keys.shift = false; break;
             }
-            
-            this.processKeyboardControls(keys);
         });
+        
+        // Update loop for acceleration-based turning
+        const updateTurnRate = () => {
+            const now = performance.now();
+            const deltaTime = (now - this.controlState.lastUpdateTime) / 1000;
+            this.controlState.lastUpdateTime = now;
+            
+            const keys = this.controlState.keys;
+            const turnAcceleration = this.controlState.turnAcceleration;
+            const maxTurnRate = this.controlState.maxTurnRate;
+            
+            if (keys.a) {
+                this.controlState.turnRate = Math.max(this.controlState.turnRate - turnAcceleration * deltaTime, -maxTurnRate);
+            } else if (keys.d) {
+                this.controlState.turnRate = Math.min(this.controlState.turnRate + turnAcceleration * deltaTime, maxTurnRate);
+            } else {
+                // Decelerate turn rate to zero
+                if (this.controlState.turnRate > 0) {
+                    this.controlState.turnRate = Math.max(this.controlState.turnRate - turnAcceleration * deltaTime, 0);
+                } else if (this.controlState.turnRate < 0) {
+                    this.controlState.turnRate = Math.min(this.controlState.turnRate + turnAcceleration * deltaTime, 0);
+                }
+            }
+            
+            this.processKeyboardControls(keys, deltaTime);
+            requestAnimationFrame(updateTurnRate);
+        };
+        
+        this.controlState.lastUpdateTime = performance.now();
+        updateTurnRate();
     }
     
-    processKeyboardControls(keys) {
+    processKeyboardControls(keys, deltaTime) {
         if (!this.game.controlledBotId) return;
         
         // Find the controlled bot
@@ -455,29 +484,15 @@ export class UI {
         // Apply overburn
         bot.isOverburn = keys.shift;
         
-        // Using larger angle steps for keyboard controls to make turning feel more responsive
-        // Instead of adjusting the bot's angle directly, we adjust the target_angle
-        // which allows the rotation speed to be properly applied
-        const rotationStep = 20; // Bigger step for better responsiveness
+        // Adjust bot's angle based on turn rate
+        bot.target_angle = this.game.normalizeAngle(bot.angle + this.controlState.turnRate * deltaTime);
         
-        if (keys.a) {
-            // Set the target angle relative to current angle
-            bot.target_angle = this.game.normalizeAngle(bot.angle - rotationStep);
-        }
-        
-        if (keys.d) {
-            // Set the target angle relative to current angle
-            bot.target_angle = this.game.normalizeAngle(bot.angle + rotationStep);
-        }
-        
-        // Handle turret rotation similarly
+        // Handle turret rotation
+        const rotationStep = 20; // Fixed step for turret rotation
         if (keys.q) {
-            // Set the target relative turret angle
             bot.target_turret_angle = this.game.normalizeAngle(bot.relativeTurretAngle - rotationStep);
         }
-        
         if (keys.e) {
-            // Set the target relative turret angle
             bot.target_turret_angle = this.game.normalizeAngle(bot.relativeTurretAngle + rotationStep);
         }
         
