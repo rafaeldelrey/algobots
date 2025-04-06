@@ -69,22 +69,16 @@ export class AIManager {
                 return true;
             },
             
+            // Updated scan method that directly returns results
             scan: (relativeAngleDegrees, arcDegrees) => {
                 if (bot.isShutdown) return null;
+                if (bot.scan_cooldown_remaining > 0) return null;
                 
                 // Convert to radians
                 const relativeAngleRadians = relativeAngleDegrees * Math.PI / 180;
                 
-                // Perform scan
-                return this.game.performScan(bot, relativeAngleRadians);
-            },
-            
-            getScanResults: (scanId) => {
-                // Check if this is the bot's last scan
-                if (bot.lastScanId === scanId) {
-                    return [...bot.lastScanResults]; // Return a copy
-                }
-                return null;
+                // Perform the scan and get results directly - returns array of objects or empty array
+                return this.game.performScanImmediate(bot, relativeAngleRadians, arcDegrees);
             },
             
             fire: () => {

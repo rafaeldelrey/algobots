@@ -415,9 +415,9 @@ export class Game {
         return true;
     }
     
-    performScan(bot, relativeAngle) {
+    performScan(bot, relativeAngle, arcDegrees = 60) {
         if (bot.isShutdown || bot.scan_cooldown_remaining > 0) {
-            return null;
+            return [];
         }
         
         // Calculate absolute scan angle
@@ -429,7 +429,7 @@ export class Game {
             x: bot.x,
             y: bot.y,
             angle: scanAngle,
-            arcWidth: bot.scan_arc_degrees * Math.PI / 180,
+            arcWidth: arcDegrees * Math.PI / 180,
             range: bot.scan_range,
             duration: 0.5, // Visual effect duration in seconds
             color: bot.color,
@@ -437,6 +437,7 @@ export class Game {
         };
         
         // Find bots in scan area
+        const results = [];
         for (const targetBot of this.bots) {
             // Skip self
             if (targetBot.id === bot.id || !targetBot.isActive) continue;
@@ -453,12 +454,12 @@ export class Game {
             let angleToTarget = Math.atan2(dy, dx);
             
             // Check if target is within scan arc
-            const halfArc = bot.scan_arc_degrees * Math.PI / 360;
+            const halfArc = arcDegrees * Math.PI / 360;
             const angleDiff = this.normalizeAngle(angleToTarget - scanAngle);
             
             if (Math.abs(angleDiff) <= halfArc) {
                 // Add target to scan results
-                scan.results.push({
+                results.push({
                     id: targetBot.id,
                     x: targetBot.x,
                     y: targetBot.y,
@@ -470,21 +471,20 @@ export class Game {
                     },
                     distance: distance
                 });
+                
+                // Also add to scan visual effect
+                scan.results.push(results[results.length - 1]);
             }
         }
         
-        // Add scan to game
+        // Add scan to game for visual effect
         this.scans.push(scan);
         
         // Start cooldown
         bot.scan_cooldown_remaining = bot.scan_cooldown;
         
-        // Generate unique scan ID for retrieval
-        const scanId = crypto.randomUUID();
-        bot.lastScanId = scanId;
-        bot.lastScanResults = scan.results;
-        
-        return scanId;
+        // Return the results immediately
+        return results;
     }
     
     createExplosion(x, y, maxRadius, damage, duration = 0.5) {

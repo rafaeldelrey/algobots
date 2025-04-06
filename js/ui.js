@@ -19,44 +19,40 @@ function runBotAI(botInfo, api, memory) {
   const shootingDistance = 250; // Distance within which to start shooting
   const tooCloseDistance = 80; // Distance below which to stop thrusting
   
-  // Perform a scan in front of the bot
-  const scanId = api.scan(0, 45);
+  // Perform a scan in front of the bot - directly get results
+  const enemies = api.scan(0, 45);
   
-  // Check if scan found an enemy
-  if (scanId) {
-    const results = api.getScanResults(scanId);
+  // Check if scan found enemies
+  if (enemies && enemies.length > 0) {
+    // Found enemy - get the closest one
+    const enemy = enemies.reduce((closest, current) => {
+      return (!closest || current.distance < closest.distance) ? current : closest;
+    }, null);
     
-    if (results && results.length > 0) {
-      // Found enemy - get the closest one
-      const enemy = results.reduce((closest, current) => {
-        return (!closest || current.distance < closest.distance) ? current : closest;
-      }, null);
+    // Calculate angle to enemy
+    const angleToTarget = api.getAngleTo(enemy.x, enemy.y);
+    
+    // Point turret at enemy
+    api.turnTurret(angleToTarget);
+    
+    // Get angle difference
+    const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
+    
+    // If we're facing the enemy...
+    if (turretAngleDiff < facingTolerance * 180 / Math.PI) {
+      // Close enough to shoot
+      if (enemy.distance < shootingDistance) {
+        api.fire();
+      }
       
-      // Calculate angle to enemy
-      const angleToTarget = api.getAngleTo(enemy.x, enemy.y);
+      // Turn ship toward enemy
+      api.turn(angleToTarget);
       
-      // Point turret at enemy
-      api.turnTurret(angleToTarget);
-      
-      // Get angle difference
-      const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
-      
-      // If we're facing the enemy...
-      if (turretAngleDiff < facingTolerance * 180 / Math.PI) {
-        // Close enough to shoot
-        if (enemy.distance < shootingDistance) {
-          api.fire();
-        }
-        
-        // Turn ship toward enemy
-        api.turn(angleToTarget);
-        
-        // Move toward enemy if not too close
-        if (enemy.distance > tooCloseDistance) {
-          api.thrust(0.7);
-        } else {
-          api.brake();
-        }
+      // Move toward enemy if not too close
+      if (enemy.distance > tooCloseDistance) {
+        api.thrust(0.7);
+      } else {
+        api.brake();
       }
     }
   } else {
@@ -94,17 +90,15 @@ function runBotAI(botInfo, api, memory) {
             api.turnTurret(memory.scanAngle);
             memory.scanAngle = (memory.scanAngle + 30) % 360;
             
-            const scanId = api.scan(0, 60);
-            if (scanId) {
-                const results = api.getScanResults(scanId);
-                if (results && results.length > 0) {
-                    // Target the closest enemy
-                    memory.target = results.reduce((closest, current) => {
-                        return (!closest || current.distance < closest.distance) ? current : closest;
-                    }, null);
-                    
-                    memory.state = "chase";
-                }
+            // Perform scan - directly get results
+            const results = api.scan(0, 60);
+            if (results && results.length > 0) {
+                // Target the closest enemy
+                memory.target = results.reduce((closest, current) => {
+                    return (!closest || current.distance < closest.distance) ? current : closest;
+                }, null);
+                
+                memory.state = "chase";
             }
             break;
             
@@ -176,30 +170,27 @@ function runBotAI(botInfo, api, memory) {
     api.turnTurret(memory.scanAngle);
     memory.scanAngle = (memory.scanAngle + 10) % 360;
     
-    // Perform scan
-    const scanId = api.scan(0, 60);
-    if (scanId) {
-        const results = api.getScanResults(scanId);
-        if (results && results.length > 0) {
-            // Target found, aim and fire
-            const target = results[0];
-            const angleToTarget = api.getAngleTo(target.x, target.y);
-            api.turnTurret(angleToTarget);
-            
-            // Only fire if turret is pointing at target
-            const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
-            if (turretAngleDiff < 15) {
-                api.fire();
-            }
-            
-            // Back away if target is too close
-            const distToTarget = api.getDistanceTo(target.x, target.y);
-            if (distToTarget < 150) {
-                const escapeAngle = api.normalizeAngle(angleToTarget + 180);
-                api.turn(escapeAngle);
-                api.thrust(1.0);
-                return;
-            }
+    // Perform scan - directly get results
+    const enemies = api.scan(0, 60);
+    if (enemies && enemies.length > 0) {
+        // Target found, aim and fire
+        const target = enemies[0];
+        const angleToTarget = api.getAngleTo(target.x, target.y);
+        api.turnTurret(angleToTarget);
+        
+        // Only fire if turret is pointing at target
+        const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
+        if (turretAngleDiff < 15) {
+            api.fire();
+        }
+        
+        // Back away if target is too close
+        const distToTarget = api.getDistanceTo(target.x, target.y);
+        if (distToTarget < 150) {
+            const escapeAngle = api.normalizeAngle(angleToTarget + 180);
+            api.turn(escapeAngle);
+            api.thrust(1.0);
+            return;
         }
     }
     
