@@ -25,11 +25,12 @@ export class Renderer {
         // Save the context state before scaling
         ctx.save();
         
-        // Calculate scaling factors
+        // Calculate scaling factors - use the full canvas size for both dimensions
+        // This will stretch the arena to fit the canvas exactly
         const scaleX = canvas.width / this.game.config.ARENA_WIDTH;
         const scaleY = canvas.height / this.game.config.ARENA_HEIGHT;
         
-        // Apply scaling to fit arena in canvas
+        // Apply scaling to fit arena in canvas - use different scales for X and Y
         ctx.scale(scaleX, scaleY);
         
         // Draw grid lines (optional)

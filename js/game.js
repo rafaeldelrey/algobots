@@ -19,7 +19,7 @@ export class Game {
         // Game configuration
         this.config = {
             ARENA_WIDTH: 800,
-            ARENA_HEIGHT: 600,
+            ARENA_HEIGHT: 800,
             FPS_CAP: 60,
             MIN_BOT_DISTANCE: 100 // Minimum distance between bots at placement
         };
