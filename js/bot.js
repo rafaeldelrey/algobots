@@ -12,6 +12,7 @@ export class Bot {
         this.angle = config.angle || 0;
         this.turret_angle = config.angle || 0; // Initialize turret aligned with body
         this.relativeTurretAngle = 0; // Turret starts facing forward relative to the body
+        this.scan_angle = config.angle || 0; // New: Separate scan angle, starts aligned with body
 
         // Movement
         this.velocityX = 0;
@@ -20,6 +21,7 @@ export class Bot {
         this.target_speed = 0;
         this.target_angle = this.angle;
         this.target_turret_angle = 0; // Target angle is now relative
+        this.target_scan_angle = 0; // New: Target scan angle (absolute, in degrees)
 
         // Ship stats - Configurable with defaults
         this.max_speed = config.max_speed || 100; // pixels per second
@@ -86,6 +88,7 @@ export class Bot {
             angle: this.angle,
             turret_angle: this.turret_angle, // Absolute angle for info
             relativeTurretAngle: this.relativeTurretAngle, // Current relative angle
+            scan_angle: this.scan_angle, // Expose scan angle to AI
             current_speed: this.current_speed,
             armor: this.armor,
             max_armor: this.max_armor,

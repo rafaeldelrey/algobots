@@ -18,17 +18,24 @@ function runBotAI(botInfo, api, memory) {
         { x: 100, y: arena.height - 100 }
     ];
     
-    // Always scan by rotating the turret
+    // Rotate turret for visual feedback (not related to scanning)
     api.turnTurret(memory.scanAngle);
+    
+    // Update scan angle independently
     memory.scanAngle = (memory.scanAngle + 10) % 360;
     
-    // Perform scan - directly get results
-    const enemies = api.scan(0, 60);
+    // Perform scan with absolute angle - directly get results
+    // Now completely independent of turret angle
+    const enemies = api.scan(memory.scanAngle, 60);
+    
     if (enemies && enemies.length > 0) {
         // Target found, aim and fire
         const target = enemies[0];
         const angleToTarget = api.getAngleTo(target.x, target.y);
-        api.turnTurret(angleToTarget);
+        
+        // Point turret at target - need to calculate relative angle
+        const relativeAngle = api.normalizeAngle(angleToTarget - botInfo.angle);
+        api.turnTurret(relativeAngle);
         
         // Only fire if turret is pointing at target
         const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));

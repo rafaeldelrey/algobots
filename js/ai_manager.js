@@ -68,12 +68,25 @@ export class AIManager {
             },
             
             // Direct scan method that returns results immediately
-            scan: (relativeAngleDegrees, arcDegrees) => {
+            // Now takes an absolute angle instead of a relative angle
+            scan: (absoluteAngle, arcDegrees) => {
                 if (bot.isShutdown) return [];
                 if (bot.scan_cooldown_remaining > 0) return [];
                 
                 // Perform the scan and get results directly
-                return this.game.performScan(bot, relativeAngleDegrees, arcDegrees);
+                return this.game.performScan(bot, absoluteAngle, arcDegrees);
+            },
+            
+            // New method for more intuitive scanning relative to the bot's direction
+            scanRelative: (relativeAngle, arcDegrees) => {
+                if (bot.isShutdown) return [];
+                if (bot.scan_cooldown_remaining > 0) return [];
+                
+                // Calculate absolute angle from bot's angle and the relative angle
+                const absoluteAngle = this.game.normalizeAngle(bot.angle + relativeAngle);
+                
+                // Perform the scan and get results directly
+                return this.game.performScan(bot, absoluteAngle, arcDegrees);
             },
             
             fire: () => {

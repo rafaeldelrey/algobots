@@ -13,12 +13,15 @@ function runBotAI(botInfo, api, memory) {
     // State machine
     switch (memory.state) {
         case "scan":
-            // Scan for enemies
+            // Rotate turret for visual feedback (not related to scanning)
             api.turnTurret(memory.scanAngle);
+            
+            // Update scan angle independently (separate from turret)
             memory.scanAngle = (memory.scanAngle + 30) % 360;
             
-            // Perform scan - directly get results
-            const results = api.scan(0, 60);
+            // Perform scan with absolute angle - directly get results
+            const results = api.scan(memory.scanAngle, 60);
+            
             if (results && results.length > 0) {
                 // Target the closest enemy
                 memory.target = results.reduce((closest, current) => {
@@ -36,9 +39,12 @@ function runBotAI(botInfo, api, memory) {
                 break;
             }
             
-            // Point turret at the target
+            // Calculate angle to target
             const angleToTarget = api.getAngleTo(memory.target.x, memory.target.y);
-            api.turnTurret(angleToTarget);
+            
+            // Point turret at the target (need to calculate relative angle)
+            const relativeAngle = api.normalizeAngle(angleToTarget - botInfo.angle);
+            api.turnTurret(relativeAngle);
             
             // Move toward the target
             api.turn(angleToTarget);
@@ -67,8 +73,14 @@ function runBotAI(botInfo, api, memory) {
             }
             
             // Scan occasionally to find new targets
+            // Now performs scan at the angle toward the target for precision
             if (Math.random() < 0.1) {
-                memory.state = "scan";
+                const newResults = api.scan(angleToTarget, 30);
+                if (newResults.length > 0) {
+                    memory.target = newResults[0];
+                } else {
+                    memory.state = "scan"; // Lost the target, go back to scanning
+                }
             }
             break;
     }

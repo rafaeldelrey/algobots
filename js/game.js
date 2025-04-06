@@ -197,11 +197,6 @@ export class Game {
             const angleDiff = this.normalizeAngle(bot.target_angle - bot.angle);
             const maxRotation = bot.max_ship_rotation_speed * dt;
             
-            // Log initial values for debugging
-            const initialAngle = bot.angle;
-            const initialTurretAngle = bot.turret_angle;
-            const initialRelativeAngle = bot.relativeTurretAngle;
-            
             if (Math.abs(angleDiff) <= maxRotation) {
                 bot.angle = bot.target_angle;
             } else {
@@ -221,11 +216,11 @@ export class Game {
 
             // Calculate absolute turret angle from ship angle and relative angle
             bot.turret_angle = this.normalizeAngle(bot.angle + bot.relativeTurretAngle);
-
-            // Optional: Keep debug logging if needed, adjust message
-            // if (bot.angle !== initialAngle || bot.relativeTurretAngle !== initialRelativeAngle) {
-            //     console.log(`${bot.name} - Ship: ${initialAngle.toFixed(2)}->${bot.angle.toFixed(2)}, RelTurret: ${initialRelativeAngle.toFixed(2)}->${bot.relativeTurretAngle.toFixed(2)}, AbsTurret: ${initialTurretAngle.toFixed(2)}->${bot.turret_angle.toFixed(2)}`);
-            // }
+            
+            // NEW: Update scan angle (independent of turret)
+            // Simply set scan_angle to target_scan_angle directly, no gradual rotation
+            // This allows instant scanning in any direction
+            bot.scan_angle = bot.target_scan_angle;
 
             // Update speed
             const speedDiff = bot.target_speed - bot.current_speed;
@@ -379,9 +374,8 @@ export class Game {
                 scan.x = sourceBot.x;
                 scan.y = sourceBot.y;
                 
-                // Optionally update the scan angle based on turret angle
-                // This will make the scan follow the turret rotation
-                scan.angle = sourceBot.turret_angle;
+                // Use the independent scan angle instead of turret angle
+                scan.angle = sourceBot.scan_angle;
             }
             
             // Remove scan if it's done
@@ -432,23 +426,27 @@ export class Game {
         return true;
     }
     
-    performScan(bot, relativeAngle, arcDegrees = 60) {
+    performScan(bot, absoluteAngle, arcDegrees = 60) {
         if (bot.isShutdown || bot.scan_cooldown_remaining > 0) {
             return [];
         }
         
-        // Calculate absolute scan angle
-        const scanAngle = this.normalizeAngle(bot.turret_angle + relativeAngle);
+        // Set the bot's scan angle to the specified absolute angle
+        bot.target_scan_angle = absoluteAngle;
+        bot.scan_angle = absoluteAngle; // Immediately set the scan angle
+        
+        // Debug output to see scanning parameters
+        console.log(`Bot ${bot.name} scanning: angle=${absoluteAngle}°, arc=${arcDegrees}°`);
         
         // Create scan object for visual effect
         const scan = {
             botId: bot.id,
             x: bot.x,
             y: bot.y,
-            angle: scanAngle,
-            arcWidth: arcDegrees, // This is already in degrees, no need for conversion
+            angle: absoluteAngle, // Use the absolute scan angle directly
+            arcWidth: arcDegrees,
             range: bot.scan_range,
-            duration: 0.5, // Visual effect duration in seconds
+            duration: 1.5, // Increased from 0.5 to 1.5 seconds for better visibility
             color: bot.color,
             results: []
         };
@@ -456,10 +454,10 @@ export class Game {
         // Find bots in scan area
         const results = [];
         for (const targetBot of this.bots) {
-            // Skip self
+            // Skip self and inactive bots
             if (targetBot.id === bot.id || !targetBot.isActive) continue;
             
-            // Calculate angle to target
+            // Calculate distance to target
             const dx = targetBot.x - bot.x;
             const dy = targetBot.y - bot.y;
             const distance = Math.hypot(dx, dy);
@@ -470,11 +468,24 @@ export class Game {
             // Calculate angle to target in degrees
             const angleToTarget = Math.atan2(dy, dx) * 180 / Math.PI;
             
-            // Check if target is within scan arc
-            const halfArc = arcDegrees / 2; // Half the arc width
-            const angleDiff = this.normalizeAngle(angleToTarget - scanAngle);
+            // Check if target is within scan arc - more robust calculation
+            // Normalize both angles to [0, 360) for easier comparison
+            let normalizedScanAngle = absoluteAngle % 360;
+            if (normalizedScanAngle < 0) normalizedScanAngle += 360;
             
-            if (Math.abs(angleDiff) <= halfArc) {
+            let normalizedTargetAngle = angleToTarget % 360;
+            if (normalizedTargetAngle < 0) normalizedTargetAngle += 360;
+            
+            // Calculate the smallest angle between them (considering wrap-around)
+            let diff1 = Math.abs(normalizedTargetAngle - normalizedScanAngle);
+            let diff2 = 360 - diff1;
+            const angleDiff = Math.min(diff1, diff2);
+            
+            // Check if within half the arc width
+            const halfArc = arcDegrees / 2;
+            if (angleDiff <= halfArc) {
+                console.log(`Bot ${bot.name} detected ${targetBot.name} at distance ${distance.toFixed(1)}, angle diff: ${angleDiff.toFixed(1)}°`);
+                
                 // Add target to scan results
                 results.push({
                     id: targetBot.id,

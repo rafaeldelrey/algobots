@@ -53,12 +53,22 @@ function runBotAI(botInfo, api, memory) {
                 break;
             }
             
-            // Scan by sweeping the turret
+            // Rotate turret for visual feedback - not necessary for scanning
             api.turnTurret(memory.scanAngle);
-            memory.scanAngle = (memory.scanAngle + 4) % 360;
             
-            // Perform scan with a wide arc
-            const scanResults = api.scan(0, 90);
+            // Increment scan angle (independent of turret rotation)
+            memory.scanAngle += 2;
+            if (memory.scanAngle >= 360) {
+                memory.scanAngle = 0;
+            }
+            
+            // Scan with specified absolute angle (no longer tied to turret)
+            const scanResults = api.scan(memory.scanAngle, 90);
+            
+            // Log useful diagnostic info when scanning
+            if (Math.random() < 0.01) {
+                console.log(`Sniper scanning at angle ${memory.scanAngle}, found ${scanResults.length} targets`);
+            }
             
             // If we find enemies, select the closest one as target
             if (scanResults.length > 0) {
@@ -67,6 +77,7 @@ function runBotAI(botInfo, api, memory) {
                 }, null);
                 
                 memory.state = "targeting";
+                console.log(`Found target: ${JSON.stringify(memory.target)}`);
             }
             break;
             
@@ -85,11 +96,15 @@ function runBotAI(botInfo, api, memory) {
                 break;
             }
             
-            // Aim at target
+            // Calculate absolute angle to target
             const angleToTarget = api.getAngleTo(memory.target.x, memory.target.y);
-            api.turnTurret(angleToTarget);
             
-            // Calculate angle difference
+            // Set turret to point directly at the target
+            // Calculate the relative angle for the turret
+            const relativeAngle = api.normalizeAngle(angleToTarget - botInfo.angle);
+            api.turnTurret(relativeAngle);
+            
+            // Calculate angle difference between turret and the target
             const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
             
             // Fire if the turret is pointing at the target with good accuracy
@@ -104,16 +119,16 @@ function runBotAI(botInfo, api, memory) {
                 api.fire();
             }
             
-            // Periodically scan for new targets
-            memory.targetCooldown = 2;
-            
-            // Scan for updated target position
-            const newScanResults = api.scan(angleToTarget, 20);
+            // Scan periodically to update target position
+            // Use the direct scan method with the angle to target for precision
+            const newScanResults = api.scan(angleToTarget, 30);
             if (newScanResults.length > 0) {
+                // Update our target with new position data
                 memory.target = newScanResults[0];
+                memory.targetCooldown = 2;
             } else {
-                // If lost target during precise scan, go back to wide scanning
-                memory.state = "scanning";
+                // If lost target during precise scan, go back to wide scanning after delay
+                memory.targetCooldown -= 0.3;
             }
             break;
     }

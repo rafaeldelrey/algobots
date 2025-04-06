@@ -5,8 +5,16 @@ function runBotAI(botInfo, api, memory) {
   const shootingDistance = 250; // Distance within which to start shooting
   const tooCloseDistance = 80; // Distance below which to stop thrusting
   
-  // Perform a scan in front of the bot - directly get results
-  const enemies = api.scan(0, 45);
+  // Initialize scan angle if not already set
+  if (!memory.scanAngle) {
+    memory.scanAngle = botInfo.angle; // Start scanning in front of the bot
+  }
+  
+  // Increment scan angle for the next scan (independent of turret)
+  memory.scanAngle = (memory.scanAngle + 10) % 360;
+  
+  // Perform a scan using the absolute scan angle
+  const enemies = api.scan(memory.scanAngle, 45);
   
   // Check if scan found enemies
   if (enemies && enemies.length > 0) {
@@ -18,8 +26,9 @@ function runBotAI(botInfo, api, memory) {
     // Calculate angle to enemy
     const angleToTarget = api.getAngleTo(enemy.x, enemy.y);
     
-    // Point turret at enemy
-    api.turnTurret(angleToTarget);
+    // Point turret at enemy (need to calculate relative angle)
+    const relativeAngle = api.normalizeAngle(angleToTarget - botInfo.angle);
+    api.turnTurret(relativeAngle);
     
     // Get angle difference
     const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
@@ -43,13 +52,10 @@ function runBotAI(botInfo, api, memory) {
     }
   } else {
     // No enemy detected - simple patrol behavior
-    if (!memory.patrolAngle) {
-      memory.patrolAngle = 0;
-    }
     
-    // Gradually rotate
-    api.turnTurret(memory.patrolAngle);
-    memory.patrolAngle = (memory.patrolAngle + 10) % 360;
+    // Gradually rotate turret for visual feedback
+    const turretScanAngle = (botInfo.relativeTurretAngle + 10) % 360;
+    api.turnTurret(turretScanAngle);
     
     // Occasional movement
     if (Math.random() < 0.05) {
