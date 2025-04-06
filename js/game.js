@@ -446,7 +446,7 @@ export class Game {
             angle: absoluteAngle, // Use the absolute scan angle directly
             arcWidth: arcDegrees,
             range: bot.scan_range,
-            duration: 1.5, // Increased from 0.5 to 1.5 seconds for better visibility
+            duration: 0.15, // Very brief flash (0.15 seconds) to indicate instantaneous scan
             color: bot.color,
             results: []
         };

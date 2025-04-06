@@ -1,140 +1,80 @@
-// Sniper Bot - Sits at the middle of the north wall and fires at targets
+// Ultra-Simplified Sniper Bot - Uses direct scanning and firing logic without relying on memory
 function runBotAI(botInfo, api, memory) {
-    // Initialize memory
-    if (!memory.initialized) {
-        memory.initialized = true;
-        memory.state = "move_to_position";
-        memory.scanAngle = 0;
-        memory.targetCooldown = 0;
-        memory.target = null;
-    }
+    // Constants for bot behavior
+    const MAX_FIRING_DISTANCE = 500; // Maximum distance for firing
+    const TURRET_AIM_TOLERANCE = 5; // Degrees of tolerance for firing
+    const POSITION_TOLERANCE = 15; // How close we need to be to our position
+    const WALL_DISTANCE = 10; // Distance from the north wall
+    const HEAT_THRESHOLD = botInfo.max_heat * 0.7; // Heat threshold before we stop overburn
     
     // Get arena dimensions
     const arena = api.getArenaSize();
     
-    // Calculate middle of north wall position
-    const northWallPosition = {
+    // Calculate our optimal sniper position (middle of north wall)
+    const sniperPosition = {
         x: arena.width / 2,
-        y: 40 // Stay slightly away from the wall
+        y: WALL_DISTANCE
     };
     
-    // Decrease target cooldown if we have one
-    if (memory.targetCooldown > 0) {
-        memory.targetCooldown -= 0.1;
+    // Step 1: First priority - ensure we're in the right position
+    const distanceFromPost = api.getDistanceTo(sniperPosition.x, sniperPosition.y);
+    if (distanceFromPost > POSITION_TOLERANCE) {
+        // We're out of position - move back
+        const angleToPosition = api.getAngleTo(sniperPosition.x, sniperPosition.y);
+        api.turn(angleToPosition);
+        api.thrust(0.8);
+        return; // Focus on movement first
     }
     
-    // State machine for the sniper bot
-    switch (memory.state) {
-        case "move_to_position":
-            // Get distance and angle to our sniper position
-            const distToPosition = api.getDistanceTo(northWallPosition.x, northWallPosition.y);
-            const angleToPosition = api.getAngleTo(northWallPosition.x, northWallPosition.y);
-            
-            // Face towards the position
-            api.turn(angleToPosition);
-            
-            // Move to the position if not close enough
-            if (distToPosition > 10) {
-                api.thrust(0.6);
-            } else {
-                api.brake();
-                // Once in position, switch to south-facing orientation
-                api.turn(90); // Face south (looking down into the arena)
-                memory.state = "scanning";
-            }
-            break;
-            
-        case "scanning":
-            // Ensure we stay at the north wall position
-            const currentDistToPosition = api.getDistanceTo(northWallPosition.x, northWallPosition.y);
-            if (currentDistToPosition > 15) {
-                // We've been pushed away, go back
-                memory.state = "move_to_position";
-                break;
-            }
-            
-            // Rotate turret for visual feedback - not necessary for scanning
-            api.turnTurret(memory.scanAngle);
-            
-            // Increment scan angle (independent of turret rotation)
-            memory.scanAngle += 2;
-            if (memory.scanAngle >= 360) {
-                memory.scanAngle = 0;
-            }
-            
-            // Scan with specified absolute angle (no longer tied to turret)
-            const scanResults = api.scan(memory.scanAngle, 90);
-            
-            // Log useful diagnostic info when scanning
-            if (Math.random() < 0.01) {
-                console.log(`Sniper scanning at angle ${memory.scanAngle}, found ${scanResults.length} targets`);
-            }
-            
-            // If we find enemies, select the closest one as target
-            if (scanResults.length > 0) {
-                memory.target = scanResults.reduce((closest, current) => {
-                    return (!closest || current.distance < closest.distance) ? current : closest;
-                }, null);
-                
-                memory.state = "targeting";
-                console.log(`Found target: ${JSON.stringify(memory.target)}`);
-            }
-            break;
-            
-        case "targeting":
-            // Ensure we stay at our position
-            const distanceFromPost = api.getDistanceTo(northWallPosition.x, northWallPosition.y);
-            if (distanceFromPost > 15) {
-                memory.state = "move_to_position";
-                break;
-            }
-            
-            // If we've lost the target or it's time to scan again
-            if (!memory.target || memory.targetCooldown <= 0) {
-                memory.state = "scanning";
-                memory.targetCooldown = 0;
-                break;
-            }
-            
-            // Calculate absolute angle to target
-            const angleToTarget = api.getAngleTo(memory.target.x, memory.target.y);
-            
-            // Set turret to point directly at the target
-            // Calculate the relative angle for the turret
-            const relativeAngle = api.normalizeAngle(angleToTarget - botInfo.angle);
-            api.turnTurret(relativeAngle);
-            
-            // Calculate angle difference between turret and the target
-            const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
-            
-            // Fire if the turret is pointing at the target with good accuracy
-            if (turretAngleDiff < 5) {
-                // Use overburn for more damage if heat is manageable
-                if (botInfo.heat < botInfo.max_heat * 0.7) {
-                    api.overburn(true);
-                } else {
-                    api.overburn(false);
-                }
-                
+    // Step 2: If we are within the post position tolerance, stop moving
+    if (distanceFromPost <= POSITION_TOLERANCE) {
+        api.turn(90);
+        api.brake(); // Ensure we're fully stopped
+    //     // If we are not already facing south, turn to face south
+    //     if (Math.abs(api.normalizeAngle(botInfo.angle - 180)) != 90) {
+    //         api.turn(90); // Turn to face south
+    //         return; // Wait until we're facing south
+    //     }
+    //     // If we are moving, brake to stop
+    //     if (botInfo.speed > 0) {
+    //         api.brake();
+    //         return; // Wait until we're fully stopped
+    //     }
+    }
+
+    // Step 3: Perform a wide scan to the south (180 degree arc)
+    const scanResults = api.scan(90, 180); // Centered on 90° with 180° arc (covers entire south half)
+    
+    // Step 4: If we found enemies, target the closest one
+    if (scanResults.length > 0) {
+        // Find the closest target
+        const target = scanResults.reduce((closest, current) => {
+            return (!closest || current.distance < closest.distance) ? current : closest;
+        });
+        
+        // Calculate angle to target
+        const angleToTarget = api.getAngleTo(target.x, target.y);
+        
+        // Aim turret at target
+        const relativeAngle = api.normalizeAngle(angleToTarget - botInfo.angle);
+        
+        // Take into consideration the target speed and direction
+        const targetSpeed = target.speed || 0;
+        const leadAngle = api.normalizeAngle(relativeAngle + (targetSpeed > 0 ? 5 : 0)); // Small lead for moving targets
+        api.turnTurret(leadAngle);
+        
+        // Check if we're aimed accurately enough
+        const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
+        
+        // Step 5: Fire if conditions are met (aimed well and not overheated)
+        if (turretAngleDiff < TURRET_AIM_TOLERANCE && target.distance <= MAX_FIRING_DISTANCE) {
+            // If we're not overheated, fire
+            if (botInfo.heat < HEAT_THRESHOLD)
+                // Fire!
                 api.fire();
-            }
-            
-            // Scan periodically to update target position
-            // Use the direct scan method with the angle to target for precision
-            const newScanResults = api.scan(angleToTarget, 30);
-            if (newScanResults.length > 0) {
-                // Update our target with new position data
-                memory.target = newScanResults[0];
-                memory.targetCooldown = 2;
-            } else {
-                // If lost target during precise scan, go back to wide scanning after delay
-                memory.targetCooldown -= 0.3;
-            }
-            break;
-    }
-    
-    // Heat management - disable overburn if we're getting too hot
-    if (botInfo.heat > botInfo.max_heat * 0.8) {
+        }
+    } else {
+        // No targets found, disable overburn
         api.overburn(false);
     }
 }
