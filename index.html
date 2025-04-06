@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Algo Bots 2D</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Add CodeMirror for syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/mode/javascript/javascript.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Setup Screen (Stage 1) -->
+        <div id="setup-screen">
+            <h1>Algo Bots 2D - Setup</h1>
+            <div class="setup-controls">
+                <button id="add-bot">Add Bot</button>
+                <button id="start-game">Start Game</button>
+            </div>
+            <div id="bots-list"></div>
+        </div>
+
+        <!-- Game Screen (Stage 2) -->
+        <div id="game-screen" style="display:none;">
+            <div class="game-container">
+                <canvas id="game-canvas"></canvas>
+                <div id="game-ui">
+                    <div class="game-controls">
+                        <button id="pause-resume">Pause</button>
+                        <button id="reset">Reset</button>
+                        <button id="back-to-setup">Back to Setup</button>
+                    </div>
+                    <div id="status-panel">
+                        <h3>Bots Status</h3>
+                        <div id="bots-status"></div>
+                    </div>
+                    <div id="manual-control">
+                        <h3>Manual Control</h3>
+                        <select id="control-bot-select">
+                            <option value="">None</option>
+                        </select>
+                        <div class="control-keys">
+                            <p>W: Forward, S: Brake</p>
+                            <p>A/D: Turn ship</p>
+                            <p>Q/E: Turn turret</p>
+                            <p>Space: Fire</p>
+                            <p>Shift: Overburn</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game template for adding new bots -->
+    <template id="bot-template">
+        <div class="bot-config">
+            <div class="bot-header">
+                <input type="text" class="bot-name" placeholder="Bot Name">
+                <input type="color" class="bot-color">
+                <button class="remove-bot">Remove</button>
+            </div>
+            <div class="code-editor-container">
+                <textarea class="bot-code"></textarea>
+            </div>
+        </div>
+    </template>
+
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>Game Over</h2>
+            <p id="game-result"></p>
+            <button id="close-modal">Close</button>
+        </div>
+    </div>
+
+    <!-- Load JavaScript modules -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
