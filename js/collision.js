@@ -81,6 +81,9 @@ export class Collision {
                 if (distance < bot.ship_radius + projectile.radius) {
                     // Apply damage to bot
                     this.game.damageBot(bot, projectile.damage);
+
+                    // Create visual explosion at impact point
+                    this.game.createExplosion(projectile.x, projectile.y, projectile.radius * 10, 0); // Larger visual explosion, no extra damage
                     
                     // Remove projectile
                     projectiles.splice(i, 1);

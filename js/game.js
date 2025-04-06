@@ -4,6 +4,7 @@ import { Projectile } from './projectile.js';
 import { Collision } from './collision.js';
 import { AIManager } from './ai_manager.js';
 import { Renderer } from './renderer.js';
+import { Explosion } from './explosion.js'; // Import the new Explosion class
 
 // Game states
 const GameState = {
@@ -290,12 +291,11 @@ export class Game {
         for (let i = this.explosions.length - 1; i >= 0; i--) {
             const explosion = this.explosions[i];
             
-            // Update explosion
-            explosion.currentRadius += explosion.expansionRate * dt;
-            explosion.opacity = 1 - (explosion.currentRadius / explosion.maxRadius);
+            // Update explosion using its own method
+            explosion.update(dt);
             
-            // Remove explosion if it's done
-            if (explosion.currentRadius >= explosion.maxRadius) {
+            // Remove explosion if it's complete
+            if (explosion.isComplete) {
                 this.explosions.splice(i, 1);
             }
         }
@@ -440,16 +440,15 @@ export class Game {
         return scanId;
     }
     
-    createExplosion(x, y, maxRadius, damage) {
-        const explosion = {
+    createExplosion(x, y, maxRadius, damage, duration = 0.5) {
+        // Use the Explosion class constructor
+        const explosion = new Explosion({
             x: x,
             y: y,
-            currentRadius: 0,
             maxRadius: maxRadius,
             damage: damage,
-            expansionRate: maxRadius * 2, // Expand fully in 0.5 seconds
-            opacity: 1
-        };
+            duration: duration
+        });
         
         this.explosions.push(explosion);
         

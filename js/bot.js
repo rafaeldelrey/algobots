@@ -29,7 +29,7 @@ export class Bot {
         this.max_turret_rotation_speed = config.max_turret_rotation_speed || Math.PI; // radians per second (180 degrees)
         
         // Combat stats
-        this.ship_radius = config.ship_radius || 15;
+        this.ship_radius = config.ship_radius || 10; // Made bots smaller
         this.armor = config.armor !== undefined ? config.armor : 100;
         this.max_armor = config.max_armor || 100;
         this.fire_power = config.fire_power || 10;
