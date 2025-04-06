@@ -10,337 +10,58 @@ export class UI {
         this.codeEditors = new Map(); // Map of bot ID -> CodeMirror editor
         this.isPaused = false;
         
-        // Sample bot templates
+        // Bot templates will be loaded from files
         this.botTemplates = {
-            idle: `// Simple Human Bot using scanning and basic targeting
-function runBotAI(botInfo, api, memory) {
-  // Constants for bot behavior
-  const facingTolerance = 5; // Degrees (was previously in radians)
-  const shootingDistance = 250; // Distance within which to start shooting
-  const tooCloseDistance = 80; // Distance below which to stop thrusting
-  
-  // Perform a scan in front of the bot - directly get results
-  const enemies = api.scan(0, 45);
-  
-  // Check if scan found enemies
-  if (enemies && enemies.length > 0) {
-    // Found enemy - get the closest one
-    const enemy = enemies.reduce((closest, current) => {
-      return (!closest || current.distance < closest.distance) ? current : closest;
-    }, null);
-    
-    // Calculate angle to enemy
-    const angleToTarget = api.getAngleTo(enemy.x, enemy.y);
-    
-    // Point turret at enemy
-    api.turnTurret(angleToTarget);
-    
-    // Get angle difference
-    const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
-    
-    // If we're facing the enemy...
-    if (turretAngleDiff < facingTolerance) {
-      // Close enough to shoot
-      if (enemy.distance < shootingDistance) {
-        api.fire();
-      }
-      
-      // Turn ship toward enemy
-      api.turn(angleToTarget);
-      
-      // Move toward enemy if not too close
-      if (enemy.distance > tooCloseDistance) {
-        api.thrust(0.7);
-      } else {
-        api.brake();
-      }
-    }
-  } else {
-    // No enemy detected - simple patrol behavior
-    if (!memory.patrolAngle) {
-      memory.patrolAngle = 0;
-    }
-    
-    // Gradually rotate
-    api.turnTurret(memory.patrolAngle);
-    memory.patrolAngle = (memory.patrolAngle + 10) % 360;
-    
-    // Occasional movement
-    if (Math.random() < 0.05) {
-      api.thrust(0.5);
-    }
-  }
-}`,
-            aggressive: `// This bot will chase the nearest enemy and fire
-function runBotAI(botInfo, api, memory) {
-    // Initialize memory
-    if (!memory.state) {
-        memory.state = "scan";
-        memory.target = null;
-        memory.scanAngle = 0;
-    }
-    
-    // Get arena boundaries
-    const arena = api.getArenaSize();
-    
-    // State machine
-    switch (memory.state) {
-        case "scan":
-            // Scan for enemies
-            api.turnTurret(memory.scanAngle);
-            memory.scanAngle = (memory.scanAngle + 30) % 360;
-            
-            // Perform scan - directly get results
-            const results = api.scan(0, 60);
-            if (results && results.length > 0) {
-                // Target the closest enemy
-                memory.target = results.reduce((closest, current) => {
-                    return (!closest || current.distance < closest.distance) ? current : closest;
-                }, null);
-                
-                memory.state = "chase";
-            }
-            break;
-            
-        case "chase":
-            // If no target or target is old, go back to scanning
-            if (!memory.target || Math.random() < 0.01) {
-                memory.state = "scan";
-                break;
-            }
-            
-            // Point turret at the target
-            const angleToTarget = api.getAngleTo(memory.target.x, memory.target.y);
-            api.turnTurret(angleToTarget);
-            
-            // Move toward the target
-            api.turn(angleToTarget);
-            
-            // Get close but not too close
-            const distToTarget = api.getDistanceTo(memory.target.x, memory.target.y);
-            if (distToTarget > 200) {
-                api.thrust(1.0);
-            } else if (distToTarget > 100) {
-                api.thrust(0.5);
-            } else {
-                api.brake();
-            }
-            
-            // Fire if turret is pointing approximately at target
-            const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
-            if (turretAngleDiff < 10) {
-                api.fire();
-                
-                // Use overburn occasionally
-                if (botInfo.heat < botInfo.max_heat * 0.7 && Math.random() < 0.1) {
-                    api.overburn(true);
-                } else {
-                    api.overburn(false);
-                }
-            }
-            
-            // Scan occasionally to find new targets
-            if (Math.random() < 0.1) {
-                memory.state = "scan";
-            }
-            break;
-    }
-}`,
-            defensive: `// This bot will patrol the edges and fire when it sees enemies
-function runBotAI(botInfo, api, memory) {
-    // Initialize memory
-    if (!memory.state) {
-        memory.state = "patrol";
-        memory.patrolPoint = 0;
-        memory.scanAngle = 0;
-    }
-    
-    // Get arena size
-    const arena = api.getArenaSize();
-    
-    // Define patrol points (near the edges)
-    const patrolPoints = [
-        { x: 100, y: 100 },
-        { x: arena.width - 100, y: 100 },
-        { x: arena.width - 100, y: arena.height - 100 },
-        { x: 100, y: arena.height - 100 }
-    ];
-    
-    // Always scan by rotating the turret
-    api.turnTurret(memory.scanAngle);
-    memory.scanAngle = (memory.scanAngle + 10) % 360;
-    
-    // Perform scan - directly get results
-    const enemies = api.scan(0, 60);
-    if (enemies && enemies.length > 0) {
-        // Target found, aim and fire
-        const target = enemies[0];
-        const angleToTarget = api.getAngleTo(target.x, target.y);
-        api.turnTurret(angleToTarget);
-        
-        // Only fire if turret is pointing at target
-        const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
-        if (turretAngleDiff < 15) {
-            api.fire();
-        }
-        
-        // Back away if target is too close
-        const distToTarget = api.getDistanceTo(target.x, target.y);
-        if (distToTarget < 150) {
-            const escapeAngle = api.normalizeAngle(angleToTarget + 180);
-            api.turn(escapeAngle);
-            api.thrust(1.0);
-            return;
-        }
-    }
-    
-    // Continue patrolling
-    const currentPatrol = patrolPoints[memory.patrolPoint];
-    const distToPatrol = api.getDistanceTo(currentPatrol.x, currentPatrol.y);
-    const angleToPatrol = api.getAngleTo(currentPatrol.x, currentPatrol.y);
-    
-    // Move to patrol point
-    api.turn(angleToPatrol);
-    
-    if (distToPatrol > 50) {
-        api.thrust(0.5);
-    } else {
-        // Move to next patrol point
-        memory.patrolPoint = (memory.patrolPoint + 1) % patrolPoints.length;
-    }
-    
-    // Disable overburn to avoid overheating
-    api.overburn(false);
-}`,
-            sniper: `// Sniper Bot - Sits at the middle of the north wall and fires at targets
-function runBotAI(botInfo, api, memory) {
-    // Initialize memory
-    if (!memory.initialized) {
-        memory.initialized = true;
-        memory.state = "move_to_position";
-        memory.scanAngle = 0;
-        memory.targetCooldown = 0;
-        memory.target = null;
-    }
-    
-    // Get arena dimensions
-    const arena = api.getArenaSize();
-    
-    // Calculate middle of north wall position
-    const northWallPosition = {
-        x: arena.width / 2,
-        y: 40 // Stay slightly away from the wall
-    };
-    
-    // Decrease target cooldown if we have one
-    if (memory.targetCooldown > 0) {
-        memory.targetCooldown -= 0.1;
-    }
-    
-    // State machine for the sniper bot
-    switch (memory.state) {
-        case "move_to_position":
-            // Get distance and angle to our sniper position
-            const distToPosition = api.getDistanceTo(northWallPosition.x, northWallPosition.y);
-            const angleToPosition = api.getAngleTo(northWallPosition.x, northWallPosition.y);
-            
-            // Face towards the position
-            api.turn(angleToPosition);
-            
-            // Move to the position if not close enough
-            if (distToPosition > 10) {
-                api.thrust(0.6);
-            } else {
-                api.brake();
-                // Once in position, switch to south-facing orientation
-                api.turn(90); // Face south (looking down into the arena)
-                memory.state = "scanning";
-            }
-            break;
-            
-        case "scanning":
-            // Ensure we stay at the north wall position
-            const currentDistToPosition = api.getDistanceTo(northWallPosition.x, northWallPosition.y);
-            if (currentDistToPosition > 15) {
-                // We've been pushed away, go back
-                memory.state = "move_to_position";
-                break;
-            }
-            
-            // Scan by sweeping the turret
-            api.turnTurret(memory.scanAngle);
-            memory.scanAngle = (memory.scanAngle + 4) % 360;
-            
-            // Perform scan with a wide arc
-            const scanResults = api.scan(0, 90);
-            
-            // If we find enemies, select the closest one as target
-            if (scanResults.length > 0) {
-                memory.target = scanResults.reduce((closest, current) => {
-                    return (!closest || current.distance < closest.distance) ? current : closest;
-                }, null);
-                
-                memory.state = "targeting";
-            }
-            break;
-            
-        case "targeting":
-            // Ensure we stay at our position
-            const distanceFromPost = api.getDistanceTo(northWallPosition.x, northWallPosition.y);
-            if (distanceFromPost > 15) {
-                memory.state = "move_to_position";
-                break;
-            }
-            
-            // If we've lost the target or it's time to scan again
-            if (!memory.target || memory.targetCooldown <= 0) {
-                memory.state = "scanning";
-                memory.targetCooldown = 0;
-                break;
-            }
-            
-            // Aim at target
-            const angleToTarget = api.getAngleTo(memory.target.x, memory.target.y);
-            api.turnTurret(angleToTarget);
-            
-            // Calculate angle difference
-            const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
-            
-            // Fire if the turret is pointing at the target with good accuracy
-            if (turretAngleDiff < 5) {
-                // Use overburn for more damage if heat is manageable
-                if (botInfo.heat < botInfo.max_heat * 0.7) {
-                    api.overburn(true);
-                } else {
-                    api.overburn(false);
-                }
-                
-                api.fire();
-            }
-            
-            // Periodically scan for new targets
-            memory.targetCooldown = 2;
-            
-            // Scan for updated target position
-            const newScanResults = api.scan(angleToTarget, 20);
-            if (newScanResults.length > 0) {
-                memory.target = newScanResults[0];
-            } else {
-                // If lost target during precise scan, go back to wide scanning
-                memory.state = "scanning";
-            }
-            break;
-    }
-    
-    // Heat management - disable overburn if we're getting too hot
-    if (botInfo.heat > botInfo.max_heat * 0.8) {
-        api.overburn(false);
-    }
-}`
+            human: '',
+            aggressive: '',
+            defensive: '',
+            sniper: ''
         };
     }
     
-    init() {
+    async loadBotTemplates() {
+        try {
+            // Load all bot templates asynchronously
+            const responses = await Promise.all([
+                fetch('bots/template_human.js'),
+                fetch('bots/template_aggressive.js'),
+                fetch('bots/template_defensive.js'),
+                fetch('bots/template_sniper.js')
+            ]);
+            
+            // Check if all responses are OK
+            if (responses.some(response => !response.ok)) {
+                throw new Error('Failed to load one or more bot templates');
+            }
+            
+            // Get text from responses
+            const [human, aggressive, defensive, sniper] = await Promise.all(
+                responses.map(response => response.text())
+            );
+            
+            // Store templates
+            this.botTemplates.human = human;
+            this.botTemplates.aggressive = aggressive;
+            this.botTemplates.defensive = defensive;
+            this.botTemplates.sniper = sniper;
+            
+            console.log('Bot templates loaded successfully');
+            return true;
+        } catch (error) {
+            console.error('Error loading bot templates:', error);
+            alert('Failed to load bot templates. Please check the console for details.');
+            return false;
+        }
+    }
+    
+    async init() {
+        // Load bot templates first
+        const templatesLoaded = await this.loadBotTemplates();
+        if (!templatesLoaded) {
+            console.error('Could not initialize UI due to template loading failure');
+            return;
+        }
+        
         // Set up event listeners for buttons
         document.getElementById('add-bot').addEventListener('click', () => this.addBot());
         document.getElementById('start-game').addEventListener('click', () => this.startGame());
@@ -360,7 +81,7 @@ function runBotAI(botInfo, api, memory) {
         this.game.setCanvas(this.canvas);
         
         // Initialize with our four bots
-        this.addBot('Human', '#8BC34A', this.botTemplates.idle);
+        this.addBot('Human', '#8BC34A', this.botTemplates.human);
         this.addBot('Aggressive', '#FF5722', this.botTemplates.aggressive);
         this.addBot('Defensive', '#2196F3', this.botTemplates.defensive);
         this.addBot('Sniper', '#9C27B0', this.botTemplates.sniper);

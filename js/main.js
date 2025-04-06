@@ -3,7 +3,7 @@ import { Game } from './game.js';
 import { UI } from './ui.js';
 
 // Create instances when DOM is fully loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Initialize game and UI components
     const game = new Game();
     const ui = new UI(game);
@@ -19,6 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ui.resizeCanvas();
     });
     
-    // Initialize the UI
-    ui.init();
+    // Initialize the UI (now async due to loading templates)
+    await ui.init();
 });

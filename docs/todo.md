@@ -7,3 +7,4 @@
   - Overheat behavior:  Shutdown, Explode
 - Add explosion effect, pushing back bots
 - Step by step button
+- Make arena square.  Its distorced.
