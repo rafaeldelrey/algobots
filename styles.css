@@ -107,18 +107,24 @@ button:hover {
 .game-container {
     display: flex;
     gap: 20px;
+    align-items: flex-start; /* Align items to the top */
+    flex-wrap: nowrap; /* Prevent wrapping */
+    height: calc(100vh - 80px); /* Use viewport height minus margins */
 }
 
 #game-canvas {
     border: 1px solid #333;
     background-color: #000;
-    flex-grow: 1;
-    min-width: 600px;
-    min-height: 600px;
+    height: 100%; /* Fill available height */
+    width: auto; /* Width will be set by JavaScript to maintain square aspect */
+    aspect-ratio: 1/1; /* Ensure square aspect ratio */
+    flex-shrink: 0; /* Prevent shrinking */
+    max-height: 100%; /* Never exceed container height */
 }
 
 #game-ui {
     width: 300px;
+    min-width: 300px; /* Add minimum width */
     background-color: white;
     padding: 15px;
     border-radius: 5px;
@@ -126,6 +132,8 @@ button:hover {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    overflow-y: auto; /* Add scrolling if needed */
+    max-height: 100%; /* Match container height */
 }
 
 .game-controls {
@@ -250,6 +258,7 @@ button:hover {
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 1000;
 }
 
 .modal-content {
@@ -258,6 +267,55 @@ button:hover {
     border-radius: 5px;
     text-align: center;
     min-width: 300px;
+    max-width: 80%;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.help-content {
+    width: 80%;
+    max-width: 800px;
+    text-align: left;
+}
+
+.scrollable-content {
+    overflow-y: auto;
+    max-height: 60vh;
+    padding: 10px 0;
+    margin-bottom: 20px;
+}
+
+.scrollable-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 15px 0;
+}
+
+.scrollable-content th,
+.scrollable-content td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+.scrollable-content th {
+    background-color: #f4f4f4;
+}
+
+.scrollable-content code {
+    background-color: #f4f4f4;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+.scrollable-content pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
 }
 
 .modal-content h2 {
@@ -274,7 +332,15 @@ button:hover {
         flex-direction: column;
     }
     
+    #game-canvas {
+        width: 100%;
+        max-width: 600px; /* Maintain max width */
+        height: auto;
+        aspect-ratio: 1/1; /* Maintain square aspect ratio */
+    }
+    
     #game-ui {
         width: 100%;
+        max-height: none;
     }
 }

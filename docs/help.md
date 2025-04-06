@@ -229,6 +229,21 @@ function runBotAI(botInfo, api, memory) {
 
 5. **Arena Awareness**: Use the `getArenaSize()` method to avoid getting trapped in corners.
 
+## Manual Controls
+
+When you select a bot for manual control, you can use the following keyboard inputs:
+
+| Key       | Action                  |
+|-----------|-------------------------|
+| W         | Move forward/accelerate |
+| S         | Brake/stop the bot      |
+| A / D     | Turn the bot hull left/right |
+| Q / E     | Turn the turret left/right |
+| Space     | Fire weapon             |
+| Shift     | Toggle overburn mode    |
+
+Manual control allows you to take direct command of a bot during gameplay, useful for testing strategies or for hybrid human/AI play sessions.
+
 ---
 
 This documentation covers the core API available to your AI scripts. Experiment with different strategies and bot behaviors to create the ultimate fighting machine!

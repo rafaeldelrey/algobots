@@ -30,6 +30,7 @@
                     <div class="game-controls">
                         <button id="pause-resume">Pause</button>
                         <button id="reset">Reset</button>
+                        <button id="help-button">Help</button>
                         <button id="back-to-setup">Back to Setup</button>
                     </div>
                     <div class="game-speed-control">
@@ -45,13 +46,6 @@
                         <select id="control-bot-select">
                             <option value="">None</option>
                         </select>
-                        <div class="control-keys">
-                            <p>W: Forward, S: Brake</p>
-                            <p>A/D: Turn ship</p>
-                            <p>Q/E: Turn turret</p>
-                            <p>Space: Fire</p>
-                            <p>Shift: Overburn</p>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -81,7 +75,17 @@
         </div>
     </div>
 
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal" style="display:none;">
+        <div class="modal-content help-content">
+            <h2>Algo Bots 2D - Help</h2>
+            <div id="help-content" class="scrollable-content"></div>
+            <button id="close-help-modal">Close</button>
+        </div>
+    </div>
+
     <!-- Load JavaScript modules -->
     <script type="module" src="js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </body>
 </html>
