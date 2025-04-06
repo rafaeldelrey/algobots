@@ -28,8 +28,8 @@ export class Bot {
         this.acceleration = config.acceleration || 50; // pixels per second squared
         this.braking_power = config.braking_power || 100; // pixels per second squared
         // Increased rotation speeds (converted from radians to degrees)
-        this.max_ship_rotation_speed = config.max_ship_rotation_speed || 120; // degrees per second (was ~90)
-        this.max_turret_rotation_speed = config.max_turret_rotation_speed || 180; // degrees per second
+        this.max_ship_rotation_speed = config.max_ship_rotation_speed || 180; // degrees per second (was ~90)
+        this.max_turret_rotation_speed = config.max_turret_rotation_speed || 240; // degrees per second
         
         // Combat stats
         this.ship_radius = config.ship_radius || 10; // Made bots smaller

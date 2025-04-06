@@ -455,25 +455,30 @@ export class UI {
         // Apply overburn
         bot.isOverburn = keys.shift;
         
-        // Handle turning - using degrees now instead of radians
-        const rotationStep = 5; // 5 degrees per keypress
-        console.log(`Rotation Step: ${rotationStep} degrees`);
+        // Using larger angle steps for keyboard controls to make turning feel more responsive
+        // Instead of adjusting the bot's angle directly, we adjust the target_angle
+        // which allows the rotation speed to be properly applied
+        const rotationStep = 20; // Bigger step for better responsiveness
         
         if (keys.a) {
-            bot.target_angle -= rotationStep;
+            // Set the target angle relative to current angle
+            bot.target_angle = this.game.normalizeAngle(bot.angle - rotationStep);
         }
         
         if (keys.d) {
-            bot.target_angle += rotationStep;
+            // Set the target angle relative to current angle
+            bot.target_angle = this.game.normalizeAngle(bot.angle + rotationStep);
         }
         
-        // Handle turret rotation - using degrees now instead of radians
+        // Handle turret rotation similarly
         if (keys.q) {
-            bot.target_turret_angle -= rotationStep;
+            // Set the target relative turret angle
+            bot.target_turret_angle = this.game.normalizeAngle(bot.relativeTurretAngle - rotationStep);
         }
         
         if (keys.e) {
-            bot.target_turret_angle += rotationStep;
+            // Set the target relative turret angle
+            bot.target_turret_angle = this.game.normalizeAngle(bot.relativeTurretAngle + rotationStep);
         }
         
         // Handle firing
