@@ -264,16 +264,58 @@ export class Game {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const proj = this.projectiles[i];
             
+            // Previous position for collision detection
+            const prevX = proj.x;
+            const prevY = proj.y;
+            
             // Update position
             proj.x += proj.vx * dt;
             proj.y += proj.vy * dt;
             
-            // Check if projectile is outside arena boundaries
+            // Check if projectile is hitting arena boundaries
+            let hitWall = false;
+            let wallPosition = { x: proj.x, y: proj.y };
+            
+            // Check horizontal walls
+            if (proj.x < 0) {
+                wallPosition.x = 0;
+                hitWall = true;
+            } else if (proj.x > this.config.ARENA_WIDTH) {
+                wallPosition.x = this.config.ARENA_WIDTH;
+                hitWall = true;
+            }
+            
+            // Check vertical walls
+            if (proj.y < 0) {
+                wallPosition.y = 0;
+                hitWall = true;
+            } else if (proj.y > this.config.ARENA_HEIGHT) {
+                wallPosition.y = this.config.ARENA_HEIGHT;
+                hitWall = true;
+            }
+            
+            // Create explosion if projectile hit a wall
+            if (hitWall) {
+                // Create smaller explosion for wall impacts
+                this.createExplosion(
+                    wallPosition.x,
+                    wallPosition.y,
+                    proj.radius * 3, // Smaller than bot explosions
+                    proj.damage / 3, // Reduced damage
+                    0.3 // Shorter duration
+                );
+                
+                // Remove the projectile that hit the wall
+                this.projectiles.splice(i, 1);
+                continue;
+            }
+            
+            // Check if projectile is way outside arena boundaries (safety check)
             if (
-                proj.x < -proj.radius || 
-                proj.x > this.config.ARENA_WIDTH + proj.radius ||
-                proj.y < -proj.radius || 
-                proj.y > this.config.ARENA_HEIGHT + proj.radius
+                proj.x < -proj.radius * 10 || 
+                proj.x > this.config.ARENA_WIDTH + proj.radius * 10 ||
+                proj.y < -proj.radius * 10 || 
+                proj.y > this.config.ARENA_HEIGHT + proj.radius * 10
             ) {
                 this.projectiles.splice(i, 1);
                 continue;
