@@ -12,25 +12,68 @@ export class UI {
         
         // Sample bot templates
         this.botTemplates = {
-            idle: `// This bot will just sit still and scan
+            idle: `// Simple Human Bot using scanning and basic targeting
 function runBotAI(botInfo, api, memory) {
-    // Initialize scan counter in memory
-    if (!memory.scanDirection) {
-        memory.scanDirection = 0;
-    }
+  // Constants for bot behavior
+  const facingTolerance = 0.1; // Radians (approx 5.7 degrees)
+  const shootingDistance = 250; // Distance within which to start shooting
+  const tooCloseDistance = 80; // Distance below which to stop thrusting
+  
+  // Perform a scan in front of the bot
+  const scanId = api.scan(0, 45);
+  
+  // Check if scan found an enemy
+  if (scanId) {
+    const results = api.getScanResults(scanId);
     
-    // Rotate turret continuously
-    api.turnTurret(memory.scanDirection);
-    memory.scanDirection = (memory.scanDirection + 5) % 360;
-    
-    // Perform scan and fire if target detected
-    const scanId = api.scan(0, 45);
-    if (scanId) {
-        const results = api.getScanResults(scanId);
-        if (results && results.length > 0) {
-            api.fire();
+    if (results && results.length > 0) {
+      // Found enemy - get the closest one
+      const enemy = results.reduce((closest, current) => {
+        return (!closest || current.distance < closest.distance) ? current : closest;
+      }, null);
+      
+      // Calculate angle to enemy
+      const angleToTarget = api.getAngleTo(enemy.x, enemy.y);
+      
+      // Point turret at enemy
+      api.turnTurret(angleToTarget);
+      
+      // Get angle difference
+      const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
+      
+      // If we're facing the enemy...
+      if (turretAngleDiff < facingTolerance * 180 / Math.PI) {
+        // Close enough to shoot
+        if (enemy.distance < shootingDistance) {
+          api.fire();
         }
+        
+        // Turn ship toward enemy
+        api.turn(angleToTarget);
+        
+        // Move toward enemy if not too close
+        if (enemy.distance > tooCloseDistance) {
+          api.thrust(0.7);
+        } else {
+          api.brake();
+        }
+      }
     }
+  } else {
+    // No enemy detected - simple patrol behavior
+    if (!memory.patrolAngle) {
+      memory.patrolAngle = 0;
+    }
+    
+    // Gradually rotate
+    api.turnTurret(memory.patrolAngle);
+    memory.patrolAngle = (memory.patrolAngle + 10) % 360;
+    
+    // Occasional movement
+    if (Math.random() < 0.05) {
+      api.thrust(0.5);
+    }
+  }
 }`,
             aggressive: `// This bot will chase the nearest enemy and fire
 function runBotAI(botInfo, api, memory) {
@@ -191,6 +234,9 @@ function runBotAI(botInfo, api, memory) {
         document.getElementById('close-modal').addEventListener('click', () => this.hideGameOver());
         document.getElementById('control-bot-select').addEventListener('change', (e) => this.setControlledBot(e.target.value));
         
+        // Set up speed slider event listener
+        document.getElementById('speed-slider').addEventListener('input', (e) => this.setGameSpeed(e.target.value));
+        
         // Set up canvas
         this.canvas = document.getElementById('game-canvas');
         this.game.setCanvas(this.canvas);
@@ -314,16 +360,56 @@ function runBotAI(botInfo, api, memory) {
     }
     
     resetGame() {
+        // Cancel any animation frame to be safe
+        if (this.game.animationFrameId) {
+            cancelAnimationFrame(this.game.animationFrameId);
+        }
+        
+        // Reset pause state
+        this.isPaused = false;
+        document.getElementById('pause-resume').textContent = 'Pause';
+        
+        // Reset game state
         this.game.reset();
+        
+        // Reset speed to default
+        this.resetGameSpeed();
+        
+        // Start a new game
         this.startGame();
+        
+        // Hide game over modal if it's showing
+        document.getElementById('game-over-modal').style.display = 'none';
     }
     
     backToSetup() {
+        // Cancel any animation frame to be safe
+        if (this.game.animationFrameId) {
+            cancelAnimationFrame(this.game.animationFrameId);
+        }
+        
         this.game.reset();
         this.setupScreen.style.display = 'block';
         this.gameScreen.style.display = 'none';
+        
+        // Reset UI state
         this.isPaused = false;
         document.getElementById('pause-resume').textContent = 'Pause';
+        
+        // Reset speed to default
+        this.resetGameSpeed();
+        
+        // Hide game over modal if it's showing
+        document.getElementById('game-over-modal').style.display = 'none';
+    }
+    
+    resetGameSpeed() {
+        // Reset slider to default position
+        const speedSlider = document.getElementById('speed-slider');
+        speedSlider.value = 1;
+        
+        // Reset the game speed
+        this.setGameSpeed(1);
     }
     
     updateBotsStatus(bots) {
@@ -542,5 +628,13 @@ function runBotAI(botInfo, api, memory) {
         // Update game configuration if needed
         this.game.config.CANVAS_WIDTH = this.canvas.width;
         this.game.config.CANVAS_HEIGHT = this.canvas.height;
+    }
+    
+    setGameSpeed(value) {
+        // Update the speedMultiplier in the game
+        this.game.setSpeedMultiplier(value);
+        
+        // Update the display value
+        document.getElementById('speed-value').textContent = `${value}x`;
     }
 }

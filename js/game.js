@@ -33,6 +33,7 @@ export class Game {
         this.lastFrameTime = 0;
         this.animationFrameId = null;
         this.controlledBotId = null;
+        this.speedMultiplier = 1.0; // Default speed multiplier
         this.uiCallbacks = {
             updateBotsStatus: () => {},
             showGameOver: () => {}
@@ -122,7 +123,11 @@ export class Game {
         if (this.state !== GameState.RUNNING) return;
         
         // Calculate delta time (in seconds)
-        const dt = Math.min((timestamp - this.lastFrameTime) / 1000, 1/30); // Cap at 30 FPS equivalent
+        let dt = Math.min((timestamp - this.lastFrameTime) / 1000, 1/30); // Cap at 30 FPS equivalent
+        
+        // Apply speed multiplier to delta time
+        dt *= this.speedMultiplier;
+        
         this.lastFrameTime = timestamp;
         
         // Process AI for each bot
@@ -548,21 +553,30 @@ export class Game {
     pause() {
         if (this.state === GameState.RUNNING) {
             this.state = GameState.PAUSED;
-            cancelAnimationFrame(this.animationFrameId);
+            // Make sure to cancel any existing animation frame
+            if (this.animationFrameId) {
+                cancelAnimationFrame(this.animationFrameId);
+                this.animationFrameId = null;
+            }
         }
     }
     
     resume() {
         if (this.state === GameState.PAUSED) {
             this.state = GameState.RUNNING;
+            // Reset the last frame time to now to avoid large dt values
             this.lastFrameTime = performance.now();
+            // Restart the game loop
             this.animationFrameId = requestAnimationFrame(this.gameLoop);
         }
     }
     
     reset() {
         // Stop current game loop
-        cancelAnimationFrame(this.animationFrameId);
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
         
         // Reset state
         this.state = GameState.SETUP;
@@ -570,6 +584,7 @@ export class Game {
         this.projectiles = [];
         this.explosions = [];
         this.scans = [];
+        this.controlledBotId = null;
     }
     
     // Utility function to normalize angle to [-PI, PI]
@@ -577,5 +592,10 @@ export class Game {
         while (angle > Math.PI) angle -= 2 * Math.PI;
         while (angle < -Math.PI) angle += 2 * Math.PI;
         return angle;
+    }
+    
+    // Set game speed multiplier
+    setSpeedMultiplier(multiplier) {
+        this.speedMultiplier = Math.max(0.25, Math.min(3, parseFloat(multiplier)));
     }
 }
