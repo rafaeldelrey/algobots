@@ -6,7 +6,7 @@ export class Bot {
         this.name = config.name || 'Bot ' + this.id.substring(0, 4);
         this.color = config.color || '#' + Math.floor(Math.random()*16777215).toString(16);
         
-        // Position and orientation
+        // Position and orientation (all angles in degrees now)
         this.x = config.x || 0;
         this.y = config.y || 0;
         this.angle = config.angle || 0;
@@ -25,8 +25,9 @@ export class Bot {
         this.max_speed = config.max_speed || 100; // pixels per second
         this.acceleration = config.acceleration || 50; // pixels per second squared
         this.braking_power = config.braking_power || 100; // pixels per second squared
-        this.max_ship_rotation_speed = config.max_ship_rotation_speed || Math.PI / 2; // radians per second (90 degrees)
-        this.max_turret_rotation_speed = config.max_turret_rotation_speed || Math.PI; // radians per second (180 degrees)
+        // Increased rotation speeds (converted from radians to degrees)
+        this.max_ship_rotation_speed = config.max_ship_rotation_speed || 120; // degrees per second (was ~90)
+        this.max_turret_rotation_speed = config.max_turret_rotation_speed || 180; // degrees per second
         
         // Combat stats
         this.ship_radius = config.ship_radius || 10; // Made bots smaller
@@ -51,7 +52,7 @@ export class Bot {
         
         // Scanning
         this.scan_range = config.scan_range || 300;
-        this.scan_arc_degrees = config.scan_arc_degrees || 60;
+        this.scan_arc_degrees = config.scan_arc_degrees || 60; // Arc width in degrees
         this.scan_cooldown = config.scan_cooldown || 1; // seconds
         this.scan_cooldown_remaining = 0;
         this.lastScanId = null;

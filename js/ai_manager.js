@@ -54,31 +54,26 @@ export class AIManager {
             turn: (targetAngleDegrees) => {
                 if (bot.isShutdown) return false;
                 
-                // Convert degrees to radians
-                const targetAngleRadians = targetAngleDegrees * Math.PI / 180;
-                bot.target_angle = targetAngleRadians;
+                // Already using degrees, no need to convert
+                bot.target_angle = targetAngleDegrees;
                 return true;
             },
             
             turnTurret: (targetAngleDegrees) => {
                 if (bot.isShutdown) return false;
                 
-                // Convert degrees to radians. Angle is always relative to the tank body.
-                const targetRelativeAngleRadians = targetAngleDegrees * Math.PI / 180;
-                bot.target_turret_angle = targetRelativeAngleRadians; // This is now the target *relative* angle
+                // Set relative angle directly in degrees
+                bot.target_turret_angle = targetAngleDegrees;
                 return true;
             },
             
-            // Updated scan method that directly returns results
+            // Direct scan method that returns results immediately
             scan: (relativeAngleDegrees, arcDegrees) => {
-                if (bot.isShutdown) return null;
-                if (bot.scan_cooldown_remaining > 0) return null;
+                if (bot.isShutdown) return [];
+                if (bot.scan_cooldown_remaining > 0) return [];
                 
-                // Convert to radians
-                const relativeAngleRadians = relativeAngleDegrees * Math.PI / 180;
-                
-                // Perform the scan and get results directly - returns array of objects or empty array
-                return this.game.performScanImmediate(bot, relativeAngleRadians, arcDegrees);
+                // Perform the scan and get results directly
+                return this.game.performScan(bot, relativeAngleDegrees, arcDegrees);
             },
             
             fire: () => {
@@ -96,10 +91,9 @@ export class AIManager {
             getAngleTo: (x, y) => {
                 const dx = x - bot.x;
                 const dy = y - bot.y;
-                const angleRadians = Math.atan2(dy, dx);
-                
-                // Convert to degrees
-                return angleRadians * 180 / Math.PI;
+                // Get angle in degrees directly
+                const angleDegrees = Math.atan2(dy, dx) * 180 / Math.PI;
+                return angleDegrees;
             },
             
             getDistanceTo: (x, y) => {
@@ -109,10 +103,8 @@ export class AIManager {
             },
             
             normalizeAngle: (angleDegrees) => {
-                let angle = angleDegrees;
-                while (angle > 180) angle -= 360;
-                while (angle < -180) angle += 360;
-                return angle;
+                // Normalize to -180 to 180
+                return this.game.normalizeAngle(angleDegrees);
             },
             
             getArenaSize: () => {
@@ -163,7 +155,4 @@ export class AIManager {
             console.error(`Error in AI execution for bot ${bot.name}:`, error);
         }
     }
-    
-    // Advanced implementation would use Web Workers for better isolation
-    // and performance, but simplified for this implementation
 }

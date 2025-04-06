@@ -15,7 +15,7 @@ export class UI {
             idle: `// Simple Human Bot using scanning and basic targeting
 function runBotAI(botInfo, api, memory) {
   // Constants for bot behavior
-  const facingTolerance = 0.1; // Radians (approx 5.7 degrees)
+  const facingTolerance = 5; // Degrees (was previously in radians)
   const shootingDistance = 250; // Distance within which to start shooting
   const tooCloseDistance = 80; // Distance below which to stop thrusting
   
@@ -36,10 +36,10 @@ function runBotAI(botInfo, api, memory) {
     api.turnTurret(angleToTarget);
     
     // Get angle difference
-    const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
+    const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
     
     // If we're facing the enemy...
-    if (turretAngleDiff < facingTolerance * 180 / Math.PI) {
+    if (turretAngleDiff < facingTolerance) {
       // Close enough to shoot
       if (enemy.distance < shootingDistance) {
         api.fire();
@@ -127,7 +127,7 @@ function runBotAI(botInfo, api, memory) {
             }
             
             // Fire if turret is pointing approximately at target
-            const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
+            const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
             if (turretAngleDiff < 10) {
                 api.fire();
                 
@@ -179,7 +179,7 @@ function runBotAI(botInfo, api, memory) {
         api.turnTurret(angleToTarget);
         
         // Only fire if turret is pointing at target
-        const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle * 180 / Math.PI - angleToTarget));
+        const turretAngleDiff = Math.abs(api.normalizeAngle(botInfo.turret_angle - angleToTarget));
         if (turretAngleDiff < 15) {
             api.fire();
         }
@@ -580,8 +580,9 @@ function runBotAI(botInfo, api, memory) {
         // Apply overburn
         bot.isOverburn = keys.shift;
         
-        // Handle turning
-        const rotationStep = Math.PI / 36; // 5 degrees in radians
+        // Handle turning - using degrees now instead of radians
+        const rotationStep = 5; // 5 degrees per keypress
+        console.log(`Rotation Step: ${rotationStep} degrees`);
         
         if (keys.a) {
             bot.target_angle -= rotationStep;
@@ -591,7 +592,7 @@ function runBotAI(botInfo, api, memory) {
             bot.target_angle += rotationStep;
         }
         
-        // Handle turret rotation
+        // Handle turret rotation - using degrees now instead of radians
         if (keys.q) {
             bot.target_turret_angle -= rotationStep;
         }

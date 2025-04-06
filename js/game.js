@@ -58,6 +58,23 @@ export class Game {
         this.renderer.setContext(this.ctx);
     }
     
+    // Utility functions for angle conversions
+    degreesToRadians(degrees) {
+        return degrees * Math.PI / 180;
+    }
+    
+    radiansToDegrees(radians) {
+        return radians * 180 / Math.PI;
+    }
+    
+    // Utility function to normalize angle to [-180, 180] degrees
+    normalizeAngle(angleDegrees) {
+        let angle = angleDegrees;
+        while (angle > 180) angle -= 360;
+        while (angle < -180) angle += 360;
+        return angle;
+    }
+    
     // Start the game
     start(botConfigs) {
         if (this.state !== GameState.SETUP) return;
@@ -102,7 +119,7 @@ export class Game {
             );
             
             // Create bot with random angle, but with turret initially aligned with the tank body
-            const randomAngle = Math.random() * Math.PI * 2;
+            const randomAngle = Math.random() * 360;
             const bot = new Bot({
                 id: crypto.randomUUID(),
                 name: config.name,
@@ -234,8 +251,8 @@ export class Game {
             }
             
             // Calculate velocity components
-            bot.velocityX = Math.cos(bot.angle) * bot.current_speed;
-            bot.velocityY = Math.sin(bot.angle) * bot.current_speed;
+            bot.velocityX = Math.cos(this.degreesToRadians(bot.angle)) * bot.current_speed;
+            bot.velocityY = Math.sin(this.degreesToRadians(bot.angle)) * bot.current_speed;
             
             // Update position
             bot.x += bot.velocityX * dt;
@@ -381,8 +398,8 @@ export class Game {
         
         // Calculate projectile spawn position at turret muzzle
         const muzzleLength = bot.ship_radius * 1.5;
-        const x = bot.x + Math.cos(bot.turret_angle) * muzzleLength;
-        const y = bot.y + Math.sin(bot.turret_angle) * muzzleLength;
+        const x = bot.x + Math.cos(this.degreesToRadians(bot.turret_angle)) * muzzleLength;
+        const y = bot.y + Math.sin(this.degreesToRadians(bot.turret_angle)) * muzzleLength;
         
         // Determine projectile damage (adjusted for overburn if active)
         let damage = bot.fire_power;
@@ -395,8 +412,8 @@ export class Game {
             ownerId: bot.id,
             x: x,
             y: y,
-            vx: Math.cos(bot.turret_angle) * bot.projectile_speed,
-            vy: Math.sin(bot.turret_angle) * bot.projectile_speed,
+            vx: Math.cos(this.degreesToRadians(bot.turret_angle)) * bot.projectile_speed,
+            vy: Math.sin(this.degreesToRadians(bot.turret_angle)) * bot.projectile_speed,
             damage: damage,
             radius: bot.projectile_radius,
             lifetime: bot.projectile_lifetime,
@@ -429,7 +446,7 @@ export class Game {
             x: bot.x,
             y: bot.y,
             angle: scanAngle,
-            arcWidth: arcDegrees * Math.PI / 180,
+            arcWidth: arcDegrees, // This is already in degrees, no need for conversion
             range: bot.scan_range,
             duration: 0.5, // Visual effect duration in seconds
             color: bot.color,
@@ -450,11 +467,11 @@ export class Game {
             // Check if target is in range
             if (distance > bot.scan_range) continue;
             
-            // Calculate angle to target
-            let angleToTarget = Math.atan2(dy, dx);
+            // Calculate angle to target in degrees
+            const angleToTarget = Math.atan2(dy, dx) * 180 / Math.PI;
             
             // Check if target is within scan arc
-            const halfArc = arcDegrees * Math.PI / 360;
+            const halfArc = arcDegrees / 2; // Half the arc width
             const angleDiff = this.normalizeAngle(angleToTarget - scanAngle);
             
             if (Math.abs(angleDiff) <= halfArc) {
@@ -585,13 +602,6 @@ export class Game {
         this.explosions = [];
         this.scans = [];
         this.controlledBotId = null;
-    }
-    
-    // Utility function to normalize angle to [-PI, PI]
-    normalizeAngle(angle) {
-        while (angle > Math.PI) angle -= 2 * Math.PI;
-        while (angle < -Math.PI) angle += 2 * Math.PI;
-        return angle;
     }
     
     // Set game speed multiplier

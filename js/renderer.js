@@ -90,7 +90,7 @@ export class Renderer {
             ctx.translate(bot.x, bot.y);
             
             // Draw bot body (triangle)
-            ctx.rotate(bot.angle);
+            ctx.rotate(this.game.degreesToRadians(bot.angle));
             ctx.beginPath();
             
             // Draw triangle pointing in the direction of movement
@@ -110,10 +110,10 @@ export class Renderer {
             ctx.stroke();
             
             // Reset rotation for turret (to draw it based on world coordinates)
-            ctx.rotate(-bot.angle);
+            ctx.rotate(-this.game.degreesToRadians(bot.angle));
             
             // Draw triangular turret
-            ctx.rotate(bot.turret_angle);
+            ctx.rotate(this.game.degreesToRadians(bot.turret_angle));
             ctx.beginPath();
             
             // Draw triangular turret with narrower tip
@@ -244,8 +244,8 @@ export class Renderer {
             ctx.arc(
                 scan.x, scan.y, 
                 scan.range, 
-                scan.angle - scan.arcWidth / 2, 
-                scan.angle + scan.arcWidth / 2
+                this.game.degreesToRadians(scan.angle - scan.arcWidth / 2), 
+                this.game.degreesToRadians(scan.angle + scan.arcWidth / 2)
             );
             ctx.lineTo(scan.x, scan.y);
             
