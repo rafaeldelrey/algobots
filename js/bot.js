@@ -36,7 +36,7 @@ export class Bot {
         this.armor = config.armor !== undefined ? config.armor : 100;
         this.max_armor = config.max_armor || 100;
         this.fire_power = config.fire_power || 10;
-        this.fire_cooldown = config.fire_cooldown || 0.5; // seconds
+        this.fire_cooldown = config.fire_cooldown || 0.25; // seconds
         this.fire_cooldown_remaining = 0;
         
         // Heat mechanics
@@ -55,7 +55,7 @@ export class Bot {
         // Scanning
         this.scan_range = config.scan_range || 300;
         this.scan_arc_degrees = config.scan_arc_degrees || 60; // Arc width in degrees
-        this.scan_cooldown = config.scan_cooldown || 1; // seconds
+        this.scan_cooldown = config.scan_cooldown || 0.25; // seconds
         this.scan_cooldown_remaining = 0;
         this.lastScanId = null;
         this.lastScanResults = null;

@@ -2,7 +2,7 @@
 function runBotAI(botInfo, api, memory) {
     // Constants for bot behavior
     const MAX_FIRING_DISTANCE = 500; // Maximum distance for firing
-    const TURRET_AIM_TOLERANCE = 5; // Degrees of tolerance for firing
+    const TURRET_AIM_TOLERANCE = 25; // Degrees of tolerance for firing
     const POSITION_TOLERANCE = 15; // How close we need to be to our position
     const WALL_DISTANCE = 10; // Distance from the north wall
     const HEAT_THRESHOLD = botInfo.max_heat * 0.7; // Heat threshold before we stop overburn

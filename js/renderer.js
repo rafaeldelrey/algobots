@@ -250,14 +250,11 @@ export class Renderer {
             );
             ctx.lineTo(scan.x, scan.y);
             
-            // Create semi-transparent fill
-            ctx.fillStyle = `${scan.color}40`; // 25% opacity
+            // Create more transparent fill (changed from 25% to 15% opacity)
+            ctx.fillStyle = `${scan.color}26`; // 15% opacity (26 in hex = ~15% opacity)
             ctx.fill();
             
-            // Add border
-            ctx.strokeStyle = scan.color;
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            // Removed border/stroke - no longer adding stroke style and stroke() call
         }
     }
 }

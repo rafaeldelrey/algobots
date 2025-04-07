@@ -1,10 +1,9 @@
-- Make arena to not get resized when control panel is too long, due to many bots being in the game
 - Add support to save/load bots
-- Fix scan
 - Simplify Bot Status area
 - Support to go backwards
-- Game options:
+- Game options in the initial screen
   - Overheat behavior:  Shutdown, Explode
+  - See all config.
 - Add explosion effect, pushing back bots
 - Step by step button
-- Make arena square.  Its distorced.
+- Config in a separated file
